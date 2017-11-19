@@ -164,17 +164,18 @@ type KVClient interface {
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
 	Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutResponse, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
+	
 }
 
-type kVClient struct {
+type KeyValClient struct {
 	cc *grpc.ClientConn
 }
 
 func NewKVClient(cc *grpc.ClientConn) KVClient {
-	return &kVClient{cc}
+	return &KeyValClient{cc}
 }
 
-func (c *kVClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error) {
+func (c *KeyValClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error) {
 	out := new(GetResponse)
 	err := grpc.Invoke(ctx, "/kv.KV/Get", in, out, c.cc, opts...)
 	if err != nil {
@@ -183,7 +184,7 @@ func (c *kVClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOpt
 	return out, nil
 }
 
-func (c *kVClient) Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutResponse, error) {
+func (c *KeyValClient) Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutResponse, error) {
 	out := new(PutResponse)
 	err := grpc.Invoke(ctx, "/kv.KV/Put", in, out, c.cc, opts...)
 	if err != nil {
@@ -192,7 +193,7 @@ func (c *kVClient) Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOpt
 	return out, nil
 }
 
-func (c *kVClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
+func (c *KeyValClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
 	out := new(DeleteResponse)
 	err := grpc.Invoke(ctx, "/kv.KV/Delete", in, out, c.cc, opts...)
 	if err != nil {

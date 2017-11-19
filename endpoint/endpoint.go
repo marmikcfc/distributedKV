@@ -2,8 +2,7 @@ package endpoint
 
 import (
 	"errors"
-	"../router"
-	"../store"
+	rt "../router"
 	"stathat.com/c/consistent"
 	"io/ioutil"
 	"log"
@@ -22,15 +21,15 @@ type (
 		internal *EndpointInternal
 	}
 	EndpointInternal struct {
-		routers  map[string]*router.Client
+		routers  map[string]*rt.Client
 		hashRing *consistent.Consistent
 		mu       *sync.RWMutex
 	}
 )
 
-func New() *Endpoint {
+func New() *Endpoint { 
 	i := &EndpointInternal{
-		routers:  make(map[string]*router.Client),
+		routers:  make(map[string]*rt.Client),
 		hashRing: consistent.New(),
 		mu:       &sync.RWMutex{},
 	}
@@ -58,20 +57,28 @@ func (e *Endpoint) StoreHandler(w http.ResponseWriter, req *http.Request) {
 	// Temporal hack, will be replaced when store can properly handle gruops
 	key := namespace + "/" + group + "/" + id
 
-	var resp []byte
+	var resp string
 	switch req.Method {
 	case "GET":
-		resp, err = e.Get(key)
+		buf, err := ioutil.ReadAll(req.Body)
+		data := string(buf[:])
+		resp, err = e.Get(data)
 		if err != nil {
 			break
 		}
-		w.Write(resp)
+		arr := []byte(resp)
+		w.Write(arr)
 	case "PUT":
-		data, err := ioutil.ReadAll(req.Body)
+		println("IN PUT")
+		buf, err := ioutil.ReadAll(req.Body)
+		data := string(buf[:])
 		if err != nil {
 			break
 		}
-		added, err := e.Put(key, data)
+			s := strings.Split(data, " ")
+    	key, value := s[0], s[1]
+
+		added, err := e.Put(key, value)
 		if added {
 			w.WriteHeader(http.StatusCreated)
 		}
@@ -89,25 +96,43 @@ func (e *Endpoint) StoreHandler(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte("Error: " + err.Error() + "\n"))
 	}
 }
-
-func (e *Endpoint) Get(key string) ([]byte, error) {
-	r, err := e.internal.getRouterForKey(key)
+ 
+func (e *Endpoint) Get(data string) (string, error) {
+	r, err := e.internal.getRouterForKey(data)
+	println ("GET Router")
+	println (r)
+	println ("##################################")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	item, err := r.Get(key)
+	item, err := r.Route.Get(data)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return item.Value, err
+	return string(item), err
 }
 
-func (e *Endpoint) Put(key string, data []byte) (bool, error) {
+func (e *Endpoint) Put(key string, value string) (bool, error) {
+
+    	println (key)
+    	println (value)
 	r, err := e.internal.getRouterForKey(key)
+
+/*	println ("Router")
+	println (r)
+	println ("##################################")
+*/
 	if err != nil {
 		return false, err
 	}
-	added, err := r.Put(&store.StoreItem{Key: key, Value: data})
+	
+/*	println("")
+	println(r.Route)
+*/
+	added, err := r.Route.Put(&rt.StoreItem{Key: key, Value: value})
+/*	println("put done")
+	println(added)
+*/
 	return added, err
 }
 
@@ -128,7 +153,7 @@ func (e *Endpoint) AddRouter(addr string) error {
 func (e *EndpointInternal) AddRouter(addr string, ok *bool) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	c, err := router.NewClient(addr, 500*time.Millisecond)
+	c, err := rt.NewClient(addr, 500*time.Millisecond)
 	if err != nil {
 		return err
 	}
@@ -137,7 +162,7 @@ func (e *EndpointInternal) AddRouter(addr string, ok *bool) error {
 	return nil
 }
 
-func (e *EndpointInternal) getRouterForKey(key string) (*router.Client, error) {
+func (e *EndpointInternal) getRouterForKey(key string) (*rt.Client, error) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	s, err := e.hashRing.Get(key)

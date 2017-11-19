@@ -1,4 +1,4 @@
-package store
+/*package store
 
 import (
 	"errors"
@@ -83,3 +83,4 @@ func (r *Store) Clear(skip bool, ack *bool) error {
 
 	return nil
 }
+*/

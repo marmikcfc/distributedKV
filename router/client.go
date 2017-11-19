@@ -1,7 +1,6 @@
 package router
 
 import (
-	"../store"
 	"net"
 	"net/rpc"
 	"time"
@@ -10,7 +9,12 @@ import (
 type (
 	Client struct {
 		connection *rpc.Client
+		Route *Router
 	}
+)
+
+const(
+	address     = "localhost:50051"
 )
 
 func NewClient(addr string, timeout time.Duration) (*Client, error) {
@@ -18,17 +22,24 @@ func NewClient(addr string, timeout time.Duration) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{connection: rpc.NewClient(connection)}, nil
+	var r *Router
+	r =New()
+	var ok bool
+	r.AddStore(address, &ok)
+	return &Client{connection: rpc.NewClient(connection), Route:r}, nil
 }
 
-func (c *Client) Get(key string) (*store.StoreItem, error) {
-	var item *store.StoreItem
+func (c *Client) Get(key string) (*StoreItem, error) {
+	var item *StoreItem
 	err := c.connection.Call("Router.Get", key, &item)
 	return item, err
 }
 
-func (c *Client) Put(item *store.StoreItem) (bool, error) {
+func (c *Client) Put(item *StoreItem) (bool, error) {
 	var added bool
+	println("inside Rpuer Client Put ")
+	//var ok bool
+	//added, err := rt.Put(item, &ok)
 	err := c.connection.Call("Router.Put", item, &added)
 	return added, err
 }

@@ -1,4 +1,4 @@
-package store
+/*package store
 
 import (
 	"net"
@@ -43,3 +43,4 @@ func (c *Client) Clear() (bool, error) {
 	err := c.connection.Call("Store.Clear", true, &cleared)
 	return cleared, err
 }
+*/

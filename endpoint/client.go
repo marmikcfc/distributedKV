@@ -24,6 +24,7 @@ func (k *Key) Str() string {
 }
 
 func NewClient(addr string) (*Client, error) {
+	println("added new client")
 	c := &http.Client{}
 	url := addr + "/"
 	return &Client{connection: c, url: url}, nil
@@ -42,6 +43,7 @@ func (c *Client) Get(key Key) ([]byte, error) {
 }
 
 func (c *Client) Put(key Key, data []byte) error {
+	println ("NEw Put Request")
 	req, err := http.NewRequest("PUT", c.url+key.Str(), bytes.NewReader(data))
 	c.Response, err = c.connection.Do(req)
 	if err != nil {
