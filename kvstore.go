@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"strconv"
 )
 const(
 	address     = "localhost:50051"
@@ -16,7 +17,7 @@ const(
 var (
 	tcpAddr     = flag.String("t", ":8081", "The tcp address to bind to for the internal RPC.")
 	httpAddr    = flag.String("h", ":8080", "The http address of which to serve the REST API.")
-	showVersion = flag.Bool("v", false, "print stored's version string")
+	numberOfNodes = flag.String("n", "1", "Number of nodes to be started with")
 )
 
 func Usage() {
@@ -30,10 +31,7 @@ func main() {
 	flag.Parse()
 
 	fmt.Println("Started Main")
-	if *showVersion {
-		fmt.Println("stored-0.0.1")
-		return
-	}
+
 	r := rt.New()
 	e := endpoint.New()
 
@@ -58,7 +56,8 @@ func main() {
 	if err != nil {
 		log.Fatal("AddStore error:", err)
 	}
-	err = e.AddRouter(*tcpAddr)
+	  i, err := strconv.Atoi(*numberOfNodes)
+	err = e.AddRouter(*tcpAddr,i)
 	if err != nil {
 		log.Fatal("AddRouter error:", err)
 	}

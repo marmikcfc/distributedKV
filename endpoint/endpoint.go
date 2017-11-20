@@ -272,15 +272,15 @@ func (e *Endpoint) Put(key string, value string) (bool, error) {
 }
 
 
-func (e *Endpoint) AddRouter(addr string) error {
+func (e *Endpoint) AddRouter(addr string, number_of_nodes int) error {
 	var ok bool
-	return e.internal.AddRouter(addr, &ok)
+	return e.internal.AddRouter(addr, &ok,number_of_nodes)
 }
 
-func (e *EndpointInternal) AddRouter(addr string, ok *bool) error {
+func (e *EndpointInternal) AddRouter(addr string, ok *bool, number_of_nodes int) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	c, err := rt.NewClient(addr, 500*time.Millisecond)
+	c, err := rt.NewClient(addr, 500*time.Millisecond, number_of_nodes)
 	if err != nil {
 		return err
 	}
