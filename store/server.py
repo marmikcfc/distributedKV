@@ -15,25 +15,20 @@ kvs = kv_store.KVStore()
 # calculator_pb2_grpc.CalculatorServicer
 class KVServicer(kv_pb2_grpc.KVServicer):
 
-    # kv_store.square_root is exposed here
-    # the request and response are of the data type
-    # calculator_pb2.Number
+    # kv_store.get is exposed here
+
     def Get(self, request, context):
         response = kv_pb2.GetResponse()
         response.value = kvs.get(request.key)
         return response
 
-    # kv_store.square_root is exposed here
-    # the request and response are of the data type
-    # calculator_pb2.Number
+    # kv_store.Delete is exposed here
     def Delete(self, request, context):
         response = kv_pb2.GetResponse()
         response.value = kvs.delete(request.key)
         return response
 
-    # kv_store.square_root is exposed here
-    # the request and response are of the data type
-    # calculator_pb2.Number
+    # kv_store.Put is exposed here
     def Put(self, request, context):
         response = kv_pb2.PutResponse()
         print "\n"
@@ -46,7 +41,7 @@ class KVServicer(kv_pb2_grpc.KVServicer):
 # create a gRPC server
 server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
-# use the generated function `add_CalculatorServicer_to_server`
+# use the generated function `add_KVServicer_to_server`
 # to add the defined class to the server
 kv_pb2_grpc.add_KVServicer_to_server(
         KVServicer(), server)

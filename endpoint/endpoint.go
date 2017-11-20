@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"encoding/json"
+	"fmt"
 )
 
 var _ = log.Printf
@@ -25,6 +27,7 @@ type (
 		hashRing *consistent.Consistent
 		mu       *sync.RWMutex
 	}
+
 )
 
 func New() *Endpoint { 
@@ -33,6 +36,7 @@ func New() *Endpoint {
 		hashRing: consistent.New(),
 		mu:       &sync.RWMutex{},
 	}
+
 	return &Endpoint{internal: i}
 }
 
@@ -46,7 +50,7 @@ func (e *Endpoint) Listen(httpAddr string) {
 }
 
 func (e *Endpoint) StoreHandler(w http.ResponseWriter, req *http.Request) {
-	namespace, group, id, err := parseURI(req.URL.RequestURI())
+	 group, err := parseURI(req.URL.RequestURI())
 	if err != nil {
 		log.Printf("HTTP Action returned error: %s", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -54,36 +58,180 @@ func (e *Endpoint) StoreHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Temporal hack, will be replaced when store can properly handle gruops
-	key := namespace + "/" + group + "/" + id
-
 	var resp string
-	switch req.Method {
-	case "GET":
-		buf, err := ioutil.ReadAll(req.Body)
-		data := string(buf[:])
-		resp, err = e.Get(data)
-		if err != nil {
-			break
-		}
-		arr := []byte(resp)
-		w.Write(arr)
-	case "PUT":
-		println("IN PUT")
-		buf, err := ioutil.ReadAll(req.Body)
-		data := string(buf[:])
-		if err != nil {
-			break
-		}
-			s := strings.Split(data, " ")
-    	key, value := s[0], s[1]
 
-		added, err := e.Put(key, value)
+	switch group{
+	case "set":
+
+	type KeyVal struct{
+			Key string
+			Value string
+		}
+
+	type rd struct{
+		Keys_added int32
+		Keys_failed []string
+	}
+
+		var resp_data rd
+		var kv []KeyVal
+		buf, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			break
+		}
+
+		er :=  json.Unmarshal(buf, &kv)
+		if er != nil {
+			break
+		}
+
+		var add int32
+		var fail []string
+		add =0 
+    	for l := range kv {
+    	added, err := e.Put(kv[l].Key, kv[l].Value)
+    	fmt.Printf("Key = %v, Val= %v", kv[l].Key, kv[l].Value)
 		if added {
+			add++
 			w.WriteHeader(http.StatusCreated)
 		}
-	case "DELETE":
-		_, err = e.Delete(key)
+		if err != nil {
+			fail = append(fail,kv[l].Key)
+		}
+    	}
+
+    	resp_data.Keys_added = add
+    	resp_data.Keys_failed = fail
+    	respData, err := json.Marshal(&resp_data)
+    	arr := []byte(respData)
+    	w.Write(arr)
+
+	case "fetch":
+		switch req.Method {
+			case "GET":
+				buf, err := ioutil.ReadAll(req.Body)
+				data := string(buf[:])
+				data = strings.Replace(data, "[", "", -1)
+				data = strings.Replace(data, "]", "", -1)
+				s := strings.Split(data, ",")
+				type KeyVal struct{
+			Key string
+			Value string
+		}
+
+		var kv []KeyVal
+				for i := range s {
+				var kvItem KeyVal
+				resp, err = e.Get(strings.Replace(s[i], "\"", "", -1))
+				kvItem.Key = s[i]
+				kvItem.Value = resp
+				kv = append(kv,kvItem)
+				if err != nil {
+					break
+				}
+
+				}
+				respData, err := json.Marshal(&kv)
+				arr := []byte(respData)
+				w.Write(arr)
+
+			case "POST":
+				buf, err := ioutil.ReadAll(req.Body)
+				data := string(buf[:])
+				data = strings.Replace(data, "[", "", -1)
+				data = strings.Replace(data, "]", "", -1)
+				s := strings.Split(data, ",")
+				type KeyVal struct{
+			Key string
+			Value string
+		}
+
+		var kv []KeyVal
+				for i := range s {
+				var kvItem KeyVal
+				resp, err = e.Get(strings.Replace(s[i], "\"", "", -1))
+				kvItem.Key = s[i]
+				kvItem.Value = resp
+				kv = append(kv,kvItem)
+				if err != nil {
+					break
+				}
+
+				}
+				respData, err := json.Marshal(&kv)
+				arr := []byte(respData)
+				w.Write(arr)		}
+
+
+	case "query":
+		switch req.Method {
+			case "GET":
+				buf, err := ioutil.ReadAll(req.Body)
+				data := string(buf[:])
+				data = strings.Replace(data, "[", "", -1)
+				data = strings.Replace(data, "]", "", -1)
+				s := strings.Split(data, ",")
+				type KeyVal struct{
+			Key string
+			Value bool
+		}
+
+		var kv []KeyVal
+				for i := range s {
+				var kvItem KeyVal
+				resp, err = e.Get(strings.Replace(s[i], "\"", "", -1))
+				kvItem.Key = s[i]
+				println (resp)
+				if (resp == "Key does not exist"){
+					kvItem.Value = false
+				} else{
+					kvItem.Value = true
+				}
+				kv = append(kv,kvItem)
+				if err != nil {
+					break
+				}
+
+				}
+				respData, err := json.Marshal(&kv)
+				arr := []byte(respData)
+				w.Write(arr)
+
+			case "POST":
+				buf, err := ioutil.ReadAll(req.Body)
+				data := string(buf[:])
+				data = strings.Replace(data, "[", "", -1)
+				data = strings.Replace(data, "]", "", -1)
+				s := strings.Split(data, ",")
+				type KeyVal struct{
+			Key string
+			Value bool
+		}
+
+		var kv []KeyVal
+				for i := range s {
+				var kvItem KeyVal
+				resp, err = e.Get(strings.Replace(s[i], "\"", "", -1))
+				kvItem.Key = s[i]
+				println (resp)
+				if (resp == "Key does not exist"){
+					kvItem.Value = false
+				} else{
+					kvItem.Value = true
+				}
+				kv = append(kv,kvItem)
+				if err != nil {
+					break
+				}
+
+				}
+				respData, err := json.Marshal(&kv)
+				arr := []byte(respData)
+				w.Write(arr)		}
+
+	default:
+		w.Write([]byte("404 - Not a valid endpoint!"))
+
 	}
 
 	if err != nil {
@@ -99,9 +247,6 @@ func (e *Endpoint) StoreHandler(w http.ResponseWriter, req *http.Request) {
  
 func (e *Endpoint) Get(data string) (string, error) {
 	r, err := e.internal.getRouterForKey(data)
-	println ("GET Router")
-	println (r)
-	println ("##################################")
 	if err != nil {
 		return "", err
 	}
@@ -118,32 +263,14 @@ func (e *Endpoint) Put(key string, value string) (bool, error) {
     	println (value)
 	r, err := e.internal.getRouterForKey(key)
 
-/*	println ("Router")
-	println (r)
-	println ("##################################")
-*/
 	if err != nil {
 		return false, err
 	}
-	
-/*	println("")
-	println(r.Route)
-*/
+
 	added, err := r.Route.Put(&rt.StoreItem{Key: key, Value: value})
-/*	println("put done")
-	println(added)
-*/
 	return added, err
 }
 
-func (e *Endpoint) Delete(key string) ([]byte, error) {
-	r, err := e.internal.getRouterForKey(key)
-	if err != nil {
-		return nil, err
-	}
-	_, err = r.Delete(key)
-	return nil, err
-}
 
 func (e *Endpoint) AddRouter(addr string) error {
 	var ok bool
@@ -173,10 +300,10 @@ func (e *EndpointInternal) getRouterForKey(key string) (*rt.Client, error) {
 	return c, nil
 }
 
-func parseURI(uri string) (string, string, string, error) {
+func parseURI(uri string) (string, error) {
 	s := strings.Split(uri, "/")
-	if len(s) != 4 {
-		return "", "", "", errors.New("URI " + uri + " does not match /[namespace]/[key]/[id]")
+	if len(s) != 2 {
+		return "", errors.New("URI " + uri + " does not match the format")
 	}
-	return s[0], s[1], s[2], nil
+	return s[1], nil
 }

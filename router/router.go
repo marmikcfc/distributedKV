@@ -23,13 +23,6 @@ type (
 )
 
 
-
-/*var keyValClient=pb.NewKVClient(*grpc.ClientConn)
-
-type keyValClient struct {
-	cc *grpc.ClientConn
-}*/
-
 type (
 	Router struct {
 		clients  map[string]pb.KVClient
@@ -54,8 +47,6 @@ func New() *Router {
 func (r *Router) Get(key string) (string, error) {
 	// c is client
 
-	println ("")
-	println ("In GET")
 	c, err := r.getClientForKey(key)
 
 
@@ -64,23 +55,14 @@ func (r *Router) Get(key string) (string, error) {
 	
 	res, er := c.Get(context.Background(), &pb.GetRequest{Key: key}, grpc.FailFast(true))
 	if er != nil {
-		log.Fatalf("could not greet: %v", err)
+		log.Fatalf("could not connect to server: %v", err)
 	}
-	log.Printf("Greeting: %s", res.Value)
-
-	//*resp = *res
+	log.Printf("Server's response: %s", res.Value)
 	return res.Value, nil
 
-/*	item, err := c.Get(key)
-	if err != nil {
-		return err
-	}
-	*resp = *item
-	return nil*/
 }
 
 func (r *Router) Put(item *StoreItem) (bool, error) {
-	println ("in router put")
 	c, err := r.getClientForKey(item.Key)
 	println (c)
 	if err != nil {
@@ -92,49 +74,14 @@ func (r *Router) Put(item *StoreItem) (bool, error) {
 
 	response, er := c.Put(context.Background(), &pb.PutRequest{Key: item.Key, Value:item.Value}, grpc.FailFast(true))
 	if er != nil {
-		log.Fatalf("could not greet: %v", er)
+		log.Fatalf("could not connect to server: %v", er)
 	}
 
-	print ("Server put done")
-	fmt.Printf("Greeting: %s", response.Ok)
+	fmt.Printf("Server's response %s", response.Ok)
 
-/*
-		res, er := c.Put(context.Background(), &pb.PutRequest{Key: "1233", Value:"absdfc"}, grpc.FailFast(true))
-
-			if er != nil {
-		log.Fatalf("could not greet: %v", er)
-	}
-*/
-/*	for _, c := range cs {
-
-
-		res, er := c.Put(context.Background(), &pb.PutRequest{Key: "1233", Value:"absdfc"}, grpc.FailFast(true))
-	if er != nil {
-		log.Fatalf("could not greet: %v", er)
-	}
-*/	
-
-/*		*added, err = c.Put(item)
-		if err != nil {
-			return err
-		}
-*/	
 	return true,nil
 }
 
-/*func (r *Router) Delete(key string, ack *bool) error {
-	cs, err := r.getClientsForKey(key)
-	if err != nil {
-		return err
-	}
-	for _, c := range cs {
-		_, err := c.Delete(key)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}*/
 
 func (r *Router) AddStore(addr string, ok *bool) error {
 	r.mu.Lock()
@@ -146,13 +93,7 @@ func (r *Router) AddStore(addr string, ok *bool) error {
 	//defer conn.Close()
 	c := pb.NewKVClient(conn)
 	println(c)
-/*	c, err := store.NewClient(addr, 500*time.Millisecond)
-	if err != nil {
-		return err
-	}
-*/ 
 	r.clients[addr] = c
-	println (r.clients[addr])
 	r.hashRing.Add(addr)
 	return nil
 }
@@ -177,12 +118,9 @@ func (r *Router) getClientForKey(key string) (pb.KVClient, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	s, err := r.hashRing.Get(key)
-	println("In get getClientForKey")
-	println(s)
 	if err != nil {
 		return nil, err
 	}
 	c, _ := r.clients[s]
-	println (c)
 	return c, nil
 }
